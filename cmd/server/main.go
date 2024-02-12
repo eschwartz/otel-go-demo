@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net/http"
@@ -29,37 +28,12 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=your-api-key"
 */
 
 func main() {
-	// https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#configure
-	ctx := context.Background()
 
-	// Configure a new OTLP exporter using environment variables for sending data to Honeycomb over gRPC
-	client := otlptracegrpc.NewClient()
-	exp, err := otlptrace.New(ctx, client)
+	err, cleanupOtel := setupOtel()
 	if err != nil {
-		log.Fatalf("failed to initialize exporter: %e", err)
+		log.Fatal(err)
 	}
-
-	// Create a new tracer provider with a batch span processor and the otlp exporter
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exp),
-	)
-
-	// Handle shutdown to ensure all sub processes are closed correctly and telemetry is exported
-	defer func() {
-		_ = exp.Shutdown(ctx)
-		_ = tp.Shutdown(ctx)
-	}()
-
-	// Register the global Tracer provider
-	otel.SetTracerProvider(tp)
-
-	// Register the W3C trace context and baggage propagators so data is propagated across services/processes
-	otel.SetTextMapPropagator(
-		propagation.NewCompositeTextMapPropagator(
-			propagation.TraceContext{},
-			propagation.Baggage{},
-		),
-	)
+	defer cleanupOtel()
 
 	// Setup HTTP server
 	http.HandleFunc("/items", HandleGetItems)
@@ -67,6 +41,34 @@ func main() {
 	log.Println("Listening on http://localhost:8000")
 	err = http.ListenAndServe(":8000", nil)
 	log.Fatal(err)
+}
+
+// Adapted from https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#configure
+func setupOtel() (error, func()) {
+	ctx := context.Background()
+
+	// Configure a new OTLP exporter using environment variables for sending data to Honeycomb over gRPC
+	otelClient := otlptracegrpc.NewClient()
+	otelExporter, err := otlptrace.New(ctx, otelClient)
+	if err != nil {
+		return fmt.Errorf("failed to initialize exporter: %w", err), func() {}
+	}
+
+	// Create a new tracer provider with a batch span processor and the otlp exporter
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithBatcher(otelExporter),
+	)
+
+	// Handle shutdown to ensure all sub processes are closed correctly and telemetry is exported
+	cleanupFn := func() {
+		_ = otelExporter.Shutdown(ctx)
+		_ = tracerProvider.Shutdown(ctx)
+	}
+
+	// Register the global Tracer provider
+	otel.SetTracerProvider(tracerProvider)
+
+	return nil, cleanupFn
 }
 func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	// Start a new trace, creating a "parent span"
@@ -76,8 +78,9 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 
 	// Add attributes to the span (similar to structured log values)
 	span.SetAttributes(
-		attribute.String("url", "/items"),
-		attribute.String("method", "GET"),
+		// We'll use the `app.` prefix to distinguish from other instrumented attributes
+		attribute.String("app.url", "/items"),
+		attribute.String("app.method", "GET"),
 	)
 
 	// Parse query params
@@ -88,8 +91,8 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	//we'll keep adding attributes to the span
 	limitInt, _ := strconv.Atoi(limit)
 	span.SetAttributes(
-		attribute.String("searchTerm", searchTerm),
-		attribute.Int("limit", limitInt),
+		attribute.String("app.searchTerm", searchTerm),
+		attribute.Int("app.limit", limitInt),
 	)
 
 	// Execute DB query
@@ -97,8 +100,8 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Errors are just another attribute of the span!
 		span.SetAttributes(
-			attribute.String("error", fmt.Sprintf("Database query failed! %s", err)),
-			attribute.Int("response.status", 500),
+			attribute.String("app.error", fmt.Sprintf("Database query failed! %s", err)),
+			attribute.Int("app.response.status", 500),
 		)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "Internal server error")
@@ -106,7 +109,7 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	}
 
 	span.SetAttributes(
-		attribute.Int("resultCount", len(items)),
+		attribute.Int("app.resultCount", len(items)),
 	)
 
 	// Write JSON response
