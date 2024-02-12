@@ -7,6 +7,10 @@ import (
 	"github.com/eschwartz/otel-go-demo/internal/pkg/data"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,18 +19,60 @@ import (
 var dataService = &data.MemoryDataService{}
 var tracer = otel.Tracer("example.app")
 
+/*
+Configure OpenTelemetry to export traces to honeycomb
+See https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#using-opentelemetry-without-the-honeycomb-distribution
+
+export OTEL_SERVICE_NAME="your-service-name"
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.honeycomb.io:443" # US instance
+export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=your-api-key"
+*/
+
 func main() {
+	// https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#configure
+	ctx := context.Background()
+
+	// Configure a new OTLP exporter using environment variables for sending data to Honeycomb over gRPC
+	client := otlptracegrpc.NewClient()
+	exp, err := otlptrace.New(ctx, client)
+	if err != nil {
+		log.Fatalf("failed to initialize exporter: %e", err)
+	}
+
+	// Create a new tracer provider with a batch span processor and the otlp exporter
+	tp := trace.NewTracerProvider(
+		trace.WithBatcher(exp),
+	)
+
+	// Handle shutdown to ensure all sub processes are closed correctly and telemetry is exported
+	defer func() {
+		_ = exp.Shutdown(ctx)
+		_ = tp.Shutdown(ctx)
+	}()
+
+	// Register the global Tracer provider
+	otel.SetTracerProvider(tp)
+
+	// Register the W3C trace context and baggage propagators so data is propagated across services/processes
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
+
 	// Setup HTTP server
 	http.HandleFunc("/items", HandleGetItems)
 
 	log.Println("Listening on http://localhost:8000")
-	err := http.ListenAndServe(":8000", nil)
+	err = http.ListenAndServe(":8000", nil)
 	log.Fatal(err)
 }
 func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	// Start a new trace, creating a "parent span"
 	// This span will describe the entire GET /items request
 	_, span := tracer.Start(context.Background(), "GET /items")
+	defer span.End()
 
 	// Add attributes to the span (similar to structured log values)
 	span.SetAttributes(
@@ -35,7 +81,7 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// Parse query params
-	searchTerm := r.URL.Query().Get("")
+	searchTerm := r.URL.Query().Get("q")
 	limit := r.URL.Query().Get("limit")
 
 	// As we continue processing the request,
