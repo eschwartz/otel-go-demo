@@ -43,7 +43,7 @@ func main() {
 	log.Fatal(err)
 }
 
-// Adapted from https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#configure
+// Adapted from https://docs.honeycomb.io/getting-data-in/opentelemetry/go-distro/#using-opentelemetry-without-the-honeycomb-distribution
 func setupOtel() (error, func()) {
 	ctx := context.Background()
 
@@ -88,7 +88,7 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 
 	// As we continue processing the request,
-	//we'll keep adding attributes to the span
+	// we'll keep adding attributes to the span
 	limitInt, _ := strconv.Atoi(limit)
 	span.SetAttributes(
 		attribute.String("app.searchTerm", searchTerm),
@@ -117,8 +117,8 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(items)
 	if err != nil {
 		span.SetAttributes(
-			attribute.String("error", fmt.Sprintf("Failed to encode json: %s", err)),
-			attribute.Int("response.status", 500),
+			attribute.String("app.error", fmt.Sprintf("Failed to encode json: %s", err)),
+			attribute.Int("app.response.status", 500),
 		)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "Internal server error")
@@ -126,6 +126,6 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	}
 
 	span.SetAttributes(
-		attribute.Int("response.status", 200),
+		attribute.Int("app.response.status", 200),
 	)
 }
