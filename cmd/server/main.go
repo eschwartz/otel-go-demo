@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var dataService = &data.MemoryDataService{}
@@ -73,7 +74,7 @@ func setupOtel() (error, func()) {
 func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	// Start a new trace, creating a "parent span"
 	// This span will describe the entire GET /items request
-	_, span := tracer.Start(context.Background(), "GET /items")
+	ctx, span := tracer.Start(context.Background(), "GET /items")
 	defer span.End()
 
 	// Add attributes to the span (similar to structured log values)
@@ -95,8 +96,12 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 		attribute.Int("app.limit", limitInt),
 	)
 
+	// Introduce some artificial latency
+	// to make traces look more realistic
+	time.Sleep(time.Millisecond * 100)
+
 	// Execute DB query
-	items, err := dataService.FindItems(searchTerm, limitInt)
+	items, err := dataService.FindItems(searchTerm, limitInt, ctx)
 	if err != nil {
 		// Errors are just another attribute of the span!
 		span.SetAttributes(
@@ -111,6 +116,10 @@ func HandleGetItems(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(
 		attribute.Int("app.resultCount", len(items)),
 	)
+
+	// Introduce some artificial latency
+	// to make traces look more realistic
+	time.Sleep(time.Millisecond * 200)
 
 	// Write JSON response
 	w.WriteHeader(200)
