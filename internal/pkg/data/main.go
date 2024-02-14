@@ -16,6 +16,8 @@ type Item struct {
 	Value string `json:"value"`
 }
 
+// This is here to repesent a backend data system, like SQL database or data API.
+// The data and behavior is stubbed out, for simplicity
 func (svc *MemoryDataService) FindItems(term string, limit int, ctx context.Context) ([]Item, error) {
 	_, span := tracer.Start(ctx, "DataService.FindItems")
 	defer span.End()
