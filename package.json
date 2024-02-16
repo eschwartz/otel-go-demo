@@ -1,0 +1,30 @@
+{
+  "name": "otel-go-demo",
+  "version": "1.0.0",
+  "description": "Demo code web API using Go and OpenTelemetry, for a blog post at [blog.edanschwartz.com](https://blog.edanschwartz.com/)",
+  "scripts": {
+    "build": "parcel build ./static/index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eschwartz/otel-go-demo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/eschwartz/otel-go-demo/issues"
+  },
+  "homepage": "https://github.com/eschwartz/otel-go-demo#readme",
+  "dependencies": {
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/context-zone": "^1.21.0",
+    "@opentelemetry/instrumentation": "^0.48.0",
+    "@opentelemetry/instrumentation-document-load": "^0.35.0",
+    "@opentelemetry/sdk-trace-web": "^1.21.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.11.0",
+    "process": "^0.11.10"
+  }
+}

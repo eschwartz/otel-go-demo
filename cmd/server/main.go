@@ -40,7 +40,7 @@ func main() {
 	http.HandleFunc("/api/items", HandleGetItems)
 
 	// Serve static files
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	http.Handle("/", http.FileServer(http.Dir("./dist")))
 
 	log.Println("Listening on http://localhost:8000")
 	err = http.ListenAndServe(":8000", nil)
