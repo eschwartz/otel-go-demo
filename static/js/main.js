@@ -31,8 +31,8 @@ const request = async (url, opts = {}) => {
 
     return withActiveSpan(`Request: ${method} ${url}`, async span => {
         span.setAttributes({
-            'http.method': method,
-            'http.url': url,
+            'request.method': method,
+            'request.url': url,
         })
         const res = await fetch(url, {
             ...opts,
@@ -44,7 +44,7 @@ const request = async (url, opts = {}) => {
         })
 
         span.setAttributes({
-            'http.response.status_code': res.status,
+            'response.status_code': res.status,
         })
 
         return res
