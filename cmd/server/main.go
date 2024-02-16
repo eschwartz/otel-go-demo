@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net/http"
@@ -69,15 +70,21 @@ func setupOtel() (error, func()) {
 		_ = tracerProvider.Shutdown(ctx)
 	}
 
+	// Setup propagation via traceparent header
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
 	// Register the global Tracer provider
 	otel.SetTracerProvider(tracerProvider)
 
 	return nil, cleanupFn
 }
 func HandleGetItems(w http.ResponseWriter, r *http.Request) {
+	// Continue trace from request, via traceparent header
+	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
 	// Start a new trace, creating a "parent span"
 	// This span will describe the entire GET /items request
-	ctx, span := tracer.Start(context.Background(), "GET /items")
+	ctx, span := tracer.Start(ctx, "GET /items")
 	defer span.End()
 
 	// Add attributes to the span (similar to structured log values)

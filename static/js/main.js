@@ -2,15 +2,6 @@ import {SpanStatusCode, trace} from "@opentelemetry/api";
 
 let tracer = trace.getTracer('test-tracer');
 
-tracer
-    .startActiveSpan('test span client', span => {
-        setTimeout(() => {
-            console.log('timeout done')
-            span.end()
-        }, 1000)
-    })
-
-
 
 // Wrapper around tracer.startActiveSpan()
 // with added support for error handling and sending the span.
