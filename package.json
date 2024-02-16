@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Demo code web API using Go and OpenTelemetry, for a blog post at [blog.edanschwartz.com](https://blog.edanschwartz.com/)",
   "scripts": {
-    "build": "parcel build ./static/index.html"
+    "build": "parcel build ./static/index.html",
+    "watch": "parcel ./static/index.html"
   },
   "repository": {
     "type": "git",
@@ -19,8 +20,10 @@
   "dependencies": {
     "@opentelemetry/api": "^1.7.0",
     "@opentelemetry/context-zone": "^1.21.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.48.0",
     "@opentelemetry/instrumentation": "^0.48.0",
     "@opentelemetry/instrumentation-document-load": "^0.35.0",
+    "@opentelemetry/resources": "^1.21.0",
     "@opentelemetry/sdk-trace-web": "^1.21.0"
   },
   "devDependencies": {

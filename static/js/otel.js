@@ -1,10 +1,34 @@
 // Adapted from https://opentelemetry.io/docs/languages/js/getting-started/browser/
-import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import {
+    BatchSpanProcessor,
+    ConsoleSpanExporter,
+    SimpleSpanProcessor,
+    WebTracerProvider
+} from '@opentelemetry/sdk-trace-web';
 import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
 import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import {OTLPTraceExporter} from "@opentelemetry/exporter-trace-otlp-http";
+import {Resource} from "@opentelemetry/resources";
 
-const provider = new WebTracerProvider();
+const provider = new WebTracerProvider({
+    resource: new Resource({
+        // NOTE: this is used as the dataset in honeycomb
+        "service.name": 'test',
+    }),
+});
+
+// Configure exporter
+const exporter = new OTLPTraceExporter({
+    url: "https://api.honeycomb.io/v1/traces", // US instance
+    headers: {
+        // NOTE: As this is running client side, there is no way to hide this API key
+        // A better alternative may be to run an otel collector on the same server
+        "x-honeycomb-team": process.env.HONEYCOMB_API_KEY,
+    },
+})
+provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+// provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
 
 provider.register({
     // Changing default contextManager to use ZoneContextManager - supports asynchronous operations - optional
@@ -12,6 +36,7 @@ provider.register({
 });
 
 // Registering instrumentations
-registerInstrumentations({
-    instrumentations: [new DocumentLoadInstrumentation()],
-});
+// registerInstrumentations({
+//      // This will include a number of events about the document load time, etc.
+//     instrumentations: [new DocumentLoadInstrumentation()],
+// });
