@@ -10,6 +10,9 @@ import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import {OTLPTraceExporter} from "@opentelemetry/exporter-trace-otlp-http";
 import {Resource} from "@opentelemetry/resources";
+import {UserInteractionInstrumentation} from "@opentelemetry/instrumentation-user-interaction";
+import {XMLHttpRequestInstrumentation} from "@opentelemetry/instrumentation-xml-http-request";
+import {FetchInstrumentation} from "@opentelemetry/instrumentation-fetch";
 
 const provider = new WebTracerProvider({
     resource: new Resource({
@@ -36,7 +39,22 @@ provider.register({
 });
 
 // Registering instrumentations
-// registerInstrumentations({
-//      // This will include a number of events about the document load time, etc.
-//     instrumentations: [new DocumentLoadInstrumentation()],
-// });
+registerInstrumentations({
+    instrumentations: [
+        // This will include a number of events about the document load time, etc.
+        // new DocumentLoadInstrumentation(),
+
+        // Create traces for certain DOM events
+        // new UserInteractionInstrumentation({
+        //     eventNames: ['submit', 'click'],
+        // }),
+        // not sure what this does, yet...
+        // new XMLHttpRequestInstrumentation({
+        //     propagateTraceHeaderCorsUrls: ['http://localhost:8000']
+        // }),
+
+        // instrument fetch()
+        // Adds traceparent headers
+        // new FetchInstrumentation()
+    ],
+});
