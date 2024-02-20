@@ -31,14 +31,13 @@ const exporter = new OTLPTraceExporter({
     },
 })
 provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
-// provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
 
 provider.register({
     // Changing default contextManager to use ZoneContextManager - supports asynchronous operations - optional
     contextManager: new ZoneContextManager(),
 });
 
-// Registering instrumentations
+// Registering instrumentations (optional)
 registerInstrumentations({
     instrumentations: [
         // This will include a number of events about the document load time, etc.
@@ -48,13 +47,13 @@ registerInstrumentations({
         // new UserInteractionInstrumentation({
         //     eventNames: ['submit', 'click'],
         // }),
-        // not sure what this does, yet...
+
+        // Creates traces for XHR requests
         // new XMLHttpRequestInstrumentation({
         //     propagateTraceHeaderCorsUrls: ['http://localhost:8000']
         // }),
 
-        // instrument fetch()
-        // Adds traceparent headers
+        // Creates traces for Fetch API requests
         // new FetchInstrumentation()
     ],
 });
