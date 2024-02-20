@@ -8,10 +8,43 @@
     <title>OpenTelemetry Demo</title>
     <script type="module" src="./js/otel.js"></script>
     <script type="module" src="./js/main.js"></script>
+    <style>
+        form {
+            width: 280px;
+        }
+        form > div {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        button, input[type=submit] {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
     <h1>OpenTelemetry Demo</h1>
 
-    <button id="fetch-items">Fetch items</button>
+    <form action="#" id="search">
+        <div>
+            <label for="term">Search Term</label>
+            <input type="text" id="term"/>
+        </div>
+
+
+        <div>
+            <label for="limit">Limit</label>
+            <input type="number" id="limit" value="1"/>
+        </div>
+
+        <div>
+            <input type="submit" value="Search">
+        </div>
+    </form>
+    <button id="lucky">I'm Feeling Lucky!</button>
+
+    <h2>Search Results</h2>
+    <ul id="items">
+    </ul>
 </body>
 </html>

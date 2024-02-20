@@ -51,15 +51,62 @@ const request = async (url, opts = {}) => {
     })
 }
 
-document.getElementById("fetch-items").onclick = async () => {
-    withActiveSpan("click fetch items", async span => {
-        const res = await request('/api/items?limit=5&q=bicycle')
+
+
+
+document.getElementById("search").onsubmit = async (evt) => {
+    evt.preventDefault()
+    withActiveSpan("submit fetch", async span => {
+        const limit = document.getElementById("limit").value
+        const term = document.getElementById("term").value
+
+        span.setAttributes({
+            "app.fetchTrigger": "search",
+            "app.itemsSearch.limit": limit,
+            "app.itemsSearch.term": term,
+        })
+
+        const res = await request(`/api/items?limit=${limit}&q=${term}`)
         const items = await res.json()
 
         span.setAttributes({
             'app.resultCount': items.length,
             'app.resultJson': JSON.stringify(items)
         })
+
+        renderItems(items)
+    })
+
+    return false;
+}
+
+document.getElementById("lucky").onclick = async () => {
+    withActiveSpan("submit fetch", async span => {
+        // Pick a random limit between 0 and 3
+        const randomLimit = Math.round(Math.random() * 3)
+        // bicycle is a sufficiently random enough term, see https://xkcd.com/221/
+        const randomTerm = "bicycle";
+
+        span.setAttributes({
+            "app.fetchTrigger": "search",
+            "app.itemsSearch.limit": randomLimit,
+            "app.itemsSearch.term": randomTerm,
+        })
+        const res = await request(`/api/items?limit=${randomLimit}&q=${randomTerm}`)
+        const items = await res.json()
+
+        span.setAttributes({
+            'app.resultCount': items.length,
+            'app.resultJson': JSON.stringify(items)
+        })
+
+        renderItems(items)
     })
 }
 
+
+
+function renderItems(items) {
+    document.getElementById("items")
+        .innerHTML = items.map(item => `<li>${item.value}</li>`).join('')
+}
