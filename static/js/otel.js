@@ -25,7 +25,7 @@ const provider = new WebTracerProvider({
 const exporter = new OTLPTraceExporter({
     url: "https://api.honeycomb.io/v1/traces", // US instance
     headers: {
-        // NOTE: As this is running client side, there is no way to hide this API key
+        // NOTE: As this is running client side, this key will be exposed to end users
         // A better alternative may be to run an otel collector on the same server
         "x-honeycomb-team": process.env.HONEYCOMB_API_KEY,
     },
